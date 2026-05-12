@@ -1,0 +1,25 @@
+# 密钥文件
+.env
+
+# 数据目录（抓取的文章和热点数据，不提交）
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 日志
+*.log
+logs/

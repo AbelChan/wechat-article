@@ -1,0 +1,39 @@
+anthropic:
+  model: claude-sonnet-4-6
+  max_tokens: 4096
+
+openai:
+  image_model: dall-e-3
+  image_size: "1024x1024"
+  image_quality: standard
+
+hot_topics:
+  platforms:
+    - weibo
+    - baidu
+    - toutiao
+    - douyin
+  top_n: 10           # 每个平台取前N条
+  min_heat_rank: 20   # 只取榜单前20名内的热点
+
+article_search:
+  sources:
+    - weixin
+    - web
+    - toutiao
+    - zhihu
+  max_per_topic: 5    # 每个热点最多抓取的文章数
+  min_content_length: 300
+
+article_writer:
+  wechat_style: true
+  target_length: 1500  # 目标字数（汉字）
+  include_sections:
+    - title
+    - intro
+    - body
+    - summary
+
+publisher:
+  auto_publish: false  # false=保存草稿，true=直接发布
+  cover_image: true
