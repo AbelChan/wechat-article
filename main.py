@@ -5,13 +5,13 @@
   步骤1: 热榜搜索 & 筛选热点
   步骤2: 搜索相关文章并存储
   步骤3: AI 重写微信公众号文章
-  步骤4: 生成配图 & 发布到公众号
+ 步骤4: 生成配图 & 上传公众号草稿
 
 用法:
     python main.py                    # 完整流程
     python main.py --step 1           # 只执行步骤1
     python main.py --step 1 2 3       # 执行步骤1-3
-    python main.py --step 4 --publish # 执行步骤4并直接发布
+    python main.py --step 4           # 执行步骤4，上传到公众号草稿
     python main.py --date 2026-05-12  # 指定日期
 """
 
@@ -42,7 +42,7 @@ STEP_NAMES = {
     1: "热榜搜索",
     2: "文章搜索",
     3: "AI 写作",
-    4: "配图 & 发布",
+    4: "配图 & 上传",
 }
 
 
@@ -63,12 +63,12 @@ def main():
     )
     parser.add_argument(
         "--step", nargs="+", type=int, choices=[1, 2, 3, 4],
-        help="指定执行的步骤 (1=热榜 2=搜文 3=写作 4=发布)"
+        help="指定执行的步骤 (1=热榜 2=搜文 3=写作 4=上传)"
     )
     parser.add_argument("--date", type=str, help="指定日期 (YYYY-MM-DD)，默认今天")
     parser.add_argument("--top", type=int, help="步骤1: 每个平台取前N条热点")
     parser.add_argument("--topic-id", type=str, help="步骤3/4: 只处理指定热点ID")
-    parser.add_argument("--publish", action="store_true", help="步骤4: 直接发布（默认仅草稿）")
+    parser.add_argument("--publish", action="store_true", help="步骤4: 创建草稿后继续提交发布")
     args = parser.parse_args()
 
     steps = args.step or [1, 2, 3, 4]
@@ -103,7 +103,7 @@ def main():
         written = tool.run(date=args.date, topic_id=args.topic_id)
         console.print(f"[green]步骤3完成: 生成 {len(written)} 篇文章[/green]\n")
 
-    # ── 步骤4: 配图 & 发布 ──
+    # ── 步骤4: 配图 & 上传 ──
     if 4 in steps:
         console.rule(f"[bold]步骤4: {STEP_NAMES[4]}")
         tool = load_tool(4)

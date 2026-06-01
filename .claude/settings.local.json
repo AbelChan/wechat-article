@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from pathlib import Path; [Path\\(f'data/{d}'\\).mkdir\\(parents=True, exist_ok=True\\) for d in ['hot_topics','source_articles','final_articles']]; print\\('data/ 目录已创建'\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import json; d=json.load\\(open\\(r'D:\\\\workspace\\\\微信公众号\\\\data\\\\final_articles\\\\2026-06-01\\\\f16ce5e3.json', encoding='utf-8'\\)\\); t=d.get\\('title',''\\); print\\(repr\\(t\\)\\); print\\('len:', len\\(t\\)\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\(r'D:\\\\workspace\\\\微信公众号\\\\data\\\\final_articles\\\\2026-06-01\\\\f16ce5e3.json', encoding='utf-8-sig'\\)\\); t=d.get\\('title',''\\); print\\(t\\); print\\('len:', len\\(t\\)\\)\")"
+    ]
+  }
+}

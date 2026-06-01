@@ -1,5 +1,4 @@
 # Core
-anthropic>=0.40.0
 openai>=1.0.0
 requests>=2.31.0
 httpx>=0.25.0
@@ -18,3 +17,4 @@ tenacity>=8.2.0
 loguru>=0.7.0
 rich>=13.0.0
 Pillow>=10.0.0
+playwright>=1.54.0

@@ -1,6 +1,6 @@
 """
 工具3: AI 重写微信公众号文章
-读取本地热点文章，调用 Claude API 重写为微信公众号风格文章，保存到本地。
+读取本地热点文章，调用 DeepSeek API 重写为微信公众号风格文章，保存到本地。
 
 用法:
     python -m tools.3_article_writer.article_writer
@@ -12,10 +12,11 @@ import os
 import sys
 from pathlib import Path
 
-import anthropic
+import openai
 from loguru import logger
 from rich.console import Console
 from rich.progress import track
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from tools.utils import (
@@ -66,8 +67,27 @@ def build_reference_text(articles: list[dict], max_chars: int = 8000) -> str:
     return "\n\n---\n\n".join(parts) if parts else "暂无参考资料"
 
 
-def write_article_with_claude(client: anthropic.Anthropic, keyword: str, articles: list[dict], config: dict) -> dict:
-    """调用 Claude API 生成文章"""
+@retry(
+    retry=retry_if_exception_type((openai.APITimeoutError, openai.APIConnectionError)),
+    wait=wait_exponential(multiplier=2, min=5, max=60),
+    stop=stop_after_attempt(3),
+    reraise=True,
+)
+def _call_deepseek(client: openai.OpenAI, model: str, max_tokens: int, prompt: str) -> str:
+    response = client.chat.completions.create(
+        model=model,
+        max_tokens=max_tokens,
+        timeout=120,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    full_text = response.choices[0].message.content if response.choices else ""
+    if not full_text:
+        raise RuntimeError("DeepSeek 返回内容为空")
+    return full_text.strip()
+
+
+def write_article_with_deepseek(client: openai.OpenAI, keyword: str, articles: list[dict], config: dict) -> dict:
+    """调用 DeepSeek API 生成文章，超时自动重试最多3次"""
     target_length = config["article_writer"]["target_length"]
     reference = build_reference_text(articles)
 
@@ -78,12 +98,12 @@ def write_article_with_claude(client: anthropic.Anthropic, keyword: str, article
     )
 
     try:
-        response = client.messages.create(
-            model=config["anthropic"]["model"],
-            max_tokens=config["anthropic"]["max_tokens"],
-            messages=[{"role": "user", "content": prompt}],
+        full_text = _call_deepseek(
+            client,
+            config["deepseek"]["model"],
+            config["deepseek"]["max_tokens"],
+            prompt,
         )
-        full_text = response.content[0].text.strip()
 
         # 分离标题和正文
         lines = full_text.splitlines()
@@ -96,11 +116,11 @@ def write_article_with_claude(client: anthropic.Anthropic, keyword: str, article
             "body": body,
             "full_text": full_text,
             "word_count": len(full_text.replace(" ", "")),
-            "model": config["anthropic"]["model"],
+            "model": config["deepseek"]["model"],
             "created_at": now_str(),
         }
     except Exception as e:
-        logger.error(f"Claude API 调用失败: {e}")
+        logger.error(f"DeepSeek API 调用失败: {e}")
         raise
 
 
@@ -150,12 +170,15 @@ def run(date: str = None, topic_id: str = None) -> list[dict]:
         console.print(f"[red]未找到文章目录: {source_dir}，请先运行工具2[/red]")
         return []
 
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = os.getenv("DEEPSEEK_API_KEY")
     if not api_key:
-        console.print("[red]未设置 ANTHROPIC_API_KEY 环境变量[/red]")
+        console.print("[red]未设置 DEEPSEEK_API_KEY 环境变量[/red]")
         return []
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = openai.OpenAI(
+        api_key=api_key,
+        base_url=config["deepseek"]["base_url"],
+    )
     console.print("[bold cyan]═══ 工具3: AI 写作 ═══[/bold cyan]")
 
     # 找到所有热点文章文件
@@ -181,7 +204,7 @@ def run(date: str = None, topic_id: str = None) -> list[dict]:
         console.print(f"  正在写作: [bold]{keyword}[/bold] (参考{len(articles)}篇)...")
 
         try:
-            result = write_article_with_claude(client, keyword, articles, config)
+            result = write_article_with_deepseek(client, keyword, articles, config)
             result["topic"] = topic
             result["keyword"] = keyword
             result["topic_id"] = topic.get("id", json_file.stem)

@@ -1,9 +1,11 @@
-anthropic:
-  model: claude-sonnet-4-6
+deepseek:
+  base_url: https://api.deepseek.com
+  model: deepseek-chat
   max_tokens: 4096
 
-openai:
-  image_model: dall-e-3
+images:
+  base_url: https://api.siliconflow.cn/v1
+  model: Kwai-Kolors/Kolors
   image_size: "1024x1024"
   image_quality: standard
 
@@ -35,5 +37,10 @@ article_writer:
     - summary
 
 publisher:
-  auto_publish: false  # false=保存草稿，true=直接发布
-  cover_image: true
+  mode: appsecret     # appsecret=官方接口上传草稿，playwright=浏览器自动草稿，manual=仅导出发布包
+  cover_image: false  # true=生成封面图后一起导出/上传
+  default_thumb_media_id: "VuD3VjEAoFhvoryQWD4vppmSj48AxnfZK8V8PljWMIST4rbCpttCTTdYiTg8yeXq"  # cover_image=false 时使用的备用封面 media_id（从公众号素材库获取）
+  author: 云中
+  browser_channel: auto  # auto=自动探测 Edge/Chrome，失败时回退到 Playwright Chromium
+  browser_profile_dir: data/browser_profiles/wechat
+  timeout_ms: 15000

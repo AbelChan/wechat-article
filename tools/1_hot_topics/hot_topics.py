@@ -32,8 +32,12 @@ console = Console()
 def fetch_weibo_hot(session, top_n: int = 10) -> list[dict]:
     """微博热搜榜"""
     url = "https://weibo.com/ajax/side/hotSearch"
+    headers = {
+        "Referer": "https://weibo.com/",
+        "Accept": "application/json, text/plain, */*",
+    }
     try:
-        resp = session.get(url, timeout=10)
+        resp = session.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         data = resp.json()
         items = data.get("data", {}).get("realtime", [])
@@ -63,7 +67,6 @@ def fetch_baidu_hot(session, top_n: int = 10) -> list[dict]:
     url = "https://top.baidu.com/board?tab=realtime"
     headers = {
         "Referer": "https://www.baidu.com/",
-        "Cookie": "BAIDUID=1234; BIDUPSID=1234;",
     }
     try:
         resp = session.get(url, headers=headers, timeout=10)
@@ -127,11 +130,13 @@ def fetch_douyin_hot(session, top_n: int = 10) -> list[dict]:
     """抖音热点榜"""
     url = "https://www.douyin.com/aweme/v1/hot/search/list/"
     params = {
-        "device_platform": "android",
-        "version_code": "99.9.9",
+        "device_platform": "webapp",
+        "aid": "6383",
+        "count": 50,
     }
     headers = {
         "Referer": "https://www.douyin.com/",
+        "Accept": "application/json, text/plain, */*",
     }
     try:
         resp = session.get(url, params=params, headers=headers, timeout=10)

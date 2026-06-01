@@ -49,7 +49,8 @@ def search_weixin(session, keyword: str, max_results: int = 5) -> list[dict]:
     params = {"type": "2", "query": keyword, "page": 1}
     headers = {
         "Referer": "https://weixin.sogou.com/",
-        "Cookie": "SUV=1234; SUID=1234;",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9",
     }
     articles = []
     try:
@@ -165,7 +166,16 @@ def search_toutiao(session, keyword: str, max_results: int = 5) -> list[dict]:
 
 
 def search_zhihu(session, keyword: str, max_results: int = 5) -> list[dict]:
-    """知乎搜索"""
+    """知乎搜索。有 ZHIHU_COOKIE 时用官方 API，否则降级为百度 site:zhihu.com"""
+    import os
+    zhihu_cookie = os.environ.get("ZHIHU_COOKIE", "")
+    if zhihu_cookie:
+        return _search_zhihu_api(session, keyword, max_results, zhihu_cookie)
+    return _search_zhihu_via_baidu(session, keyword, max_results)
+
+
+def _search_zhihu_api(session, keyword: str, max_results: int, cookie: str) -> list[dict]:
+    """用官方 API 搜索知乎（需要登录 Cookie）"""
     url = "https://www.zhihu.com/api/v4/search_v3"
     params = {
         "t": "general",
@@ -178,6 +188,7 @@ def search_zhihu(session, keyword: str, max_results: int = 5) -> list[dict]:
     headers = {
         "Referer": f"https://www.zhihu.com/search?q={quote(keyword)}&type=content",
         "x-requested-with": "fetch",
+        "Cookie": cookie,
     }
     articles = []
     try:
@@ -207,7 +218,41 @@ def search_zhihu(session, keyword: str, max_results: int = 5) -> list[dict]:
                     "content": content,
                     "collected_at": now_str(),
                 })
-        logger.info(f"知乎搜索 [{keyword}]: {len(articles)} 篇")
+        logger.info(f"知乎搜索(API) [{keyword}]: {len(articles)} 篇")
+    except Exception as e:
+        logger.error(f"知乎API搜索失败: {e}")
+    return articles
+
+
+def _search_zhihu_via_baidu(session, keyword: str, max_results: int) -> list[dict]:
+    """通过百度搜索 site:zhihu.com 获取知乎内容（无需登录）"""
+    url = "https://www.baidu.com/s"
+    params = {"wd": f"site:zhihu.com {keyword}", "rn": max_results}
+    headers = {"Referer": "https://www.baidu.com/"}
+    articles = []
+    try:
+        resp = session.get(url, params=params, headers=headers, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "lxml")
+        items = soup.select(".result.c-container")[:max_results]
+        for item in items:
+            title_el = item.select_one("h3 a")
+            abstract_el = item.select_one(".c-abstract")
+            if not title_el:
+                continue
+            title = title_el.get_text(strip=True)
+            link = title_el.get("href", "")
+            content = abstract_el.get_text(strip=True) if abstract_el else ""
+            if title:
+                articles.append({
+                    "id": new_id(),
+                    "platform": "zhihu",
+                    "title": title,
+                    "url": link,
+                    "content": content,
+                    "collected_at": now_str(),
+                })
+        logger.info(f"知乎搜索(百度降级) [{keyword}]: {len(articles)} 篇")
     except Exception as e:
         logger.error(f"知乎搜索失败: {e}")
     return articles

@@ -42,8 +42,8 @@ python main.py
 python main.py --step 1          # 只爬热榜
 python main.py --step 2          # 只搜文章
 python main.py --step 3          # 只 AI 写作
-python main.py --step 4          # 只发布（默认草稿）
-python main.py --step 4 --publish # 直接发布
+python main.py --step 4          # 自动写入公众号草稿
+python main.py --step 4 --publish # 兼容旧参数，仍然只保存草稿
 ```
 
 ## 各工具说明
@@ -59,29 +59,35 @@ python main.py --step 4 --publish # 直接发布
 - 输出：`data/source_articles/YYYY-MM-DD/{topic_id}.json`
 
 ### 工具3: AI 写作 (`tools/3_article_writer/`)
-- 使用 Claude API (claude-sonnet-4-6)
+- 使用 DeepSeek API (`deepseek-chat`)
 - 根据参考文章写出微信公众号风格文章
 - 自动生成微信 HTML 排版
 - 输出：`data/final_articles/YYYY-MM-DD/{topic_id}.json`
 
-### 工具4: 配图 & 发布 (`tools/4_wechat_publisher/`)
-- 用 DALL-E 3 生成封面配图
-- 上传素材到微信公众号后台
-- 创建图文草稿，支持一键发布
-- 输出：更新文章 JSON + `data/final_articles/YYYY-MM-DD/images/`
+### 工具4: 配图 & 草稿 (`tools/4_wechat_publisher/`)
+- 用国内大模型 API 生成封面配图（默认硅基流动 Kwai-Kolors/Kolors）
+- 使用 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 通过官方接口上传封面并创建草稿
+- 导出公众号后台可直接使用的发布包
+- 可选使用 Playwright 复用登录态自动写入草稿箱
+- 接口或页面失败时自动回退到发布包
+- 输出：更新文章 JSON + `data/publish_packages/YYYY-MM-DD/{topic_id}/`
 
 ## 必需的 API Keys
 
 | 变量名 | 用途 | 获取方式 |
 |--------|------|----------|
-| `ANTHROPIC_API_KEY` | Claude 写文章 | console.anthropic.com |
-| `OPENAI_API_KEY` | DALL-E 生成配图 | platform.openai.com |
-| `WECHAT_APP_ID` | 公众号发布 | mp.weixin.qq.com → 开发 → 基本配置 |
-| `WECHAT_APP_SECRET` | 公众号发布 | 同上 |
+| `DEEPSEEK_API_KEY` | DeepSeek 写文章 | platform.deepseek.com |
+| `IMAGES_API_KEY` | 硅基流动 / OpenAI 兼容图片生成 | api.siliconflow.cn |
+| `WECHAT_APP_ID` | 公众号接口上传 | mp.weixin.qq.com → 开发 → 基本配置 |
+| `WECHAT_APP_SECRET` | 公众号接口上传 | 同上 |
 
 ## 配置文件 (`config/config.yaml`)
 
 - `hot_topics.top_n`: 每个平台取前N条（默认10）
 - `article_search.max_per_topic`: 每个热点最多搜N篇文章（默认5）
 - `article_writer.target_length`: 生成文章目标字数（默认1500）
-- `publisher.auto_publish`: false=仅创建草稿，true=直接发布
+- `images.model`: 配图模型（默认 Kwai-Kolors/Kolors），可改为其它硅基流动支持的图片模型
+- `publisher.mode`: `appsecret`=官方接口上传草稿，`playwright`=浏览器自动草稿，`manual`=仅导出发布包
+- `publisher.cover_image`: true=生成封面图后一起导出/上传
+- `publisher.browser_profile_dir`: 浏览器登录态目录
+- 首次启用自动草稿前需执行 `pip install -r requirements.txt` 和 `playwright install`
